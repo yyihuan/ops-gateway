@@ -1,5 +1,7 @@
 # Ops Gate
 
+Safety gate for agent operations: structured plans, manual approval, scoped backups, and run evidence.
+
 `Ops Gate` 是一个面向 agent 运维的操作闸门骨架。
 
 它的第一目标不是“记录历史”，而是把所有非基础操作收口到结构化 plan、人工审批和保底备份流程里，尽量降低 agent 误操作带来的数据损失。运行历史追溯仍然保留，但它是第二目标。
