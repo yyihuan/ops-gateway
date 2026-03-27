@@ -1,0 +1,63 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "web-auto-approval-test",
+  "plan_title": "Web Auto Approval Test",
+  "description": "Read-only test plan for validating manual-to-auto-low-risk approval mode transitions in the web backend.",
+  "operator": "replace-manual-approver",
+  "target": {
+    "host": "localhost",
+    "os": "Ubuntu 24.04"
+  },
+  "steps": [
+    {
+      "id": "auto.low_step",
+      "title": "Low-risk read-only step",
+      "goal": "验证 low 风险 step 可在自动审批模式下直接放行",
+      "reason": "需要确认 web 页面开启自动审批后，当前 low 风险步骤会自动继续执行",
+      "risk": {
+        "level": "low",
+        "summary": "仅执行只读命令",
+        "approval_hint": "yes 只会输出 low-step-ok，不会修改系统。"
+      },
+      "pre_checks": [],
+      "commands": [
+        {
+          "id": "cmd.low",
+          "name": "Emit low-risk marker",
+          "review_note": "输出 low-step-ok，验证当前步骤已被执行。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "printf 'low-step-ok\\n'"
+        }
+      ],
+      "post_checks": [],
+      "rollback": []
+    },
+    {
+      "id": "auto.high_step",
+      "title": "High-risk approval boundary step",
+      "goal": "验证 high 风险 step 不会被 auto_low_risk 自动放行",
+      "reason": "需要确认自动审批模式只覆盖 low 风险步骤，不扩大到高风险审批",
+      "risk": {
+        "level": "high",
+        "summary": "高风险边界验证步骤，仅用于测试审批停顿点",
+        "approval_hint": "即使是测试步骤，在 auto_low_risk 模式下也应停下来等待人工审批。"
+      },
+      "pre_checks": [],
+      "commands": [
+        {
+          "id": "cmd.high",
+          "name": "Emit high-risk marker",
+          "review_note": "输出 high-step-ok，只有在人工同意后才应执行。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "printf 'high-step-ok\\n'"
+        }
+      ],
+      "post_checks": [],
+      "rollback": []
+    }
+  ]
+}

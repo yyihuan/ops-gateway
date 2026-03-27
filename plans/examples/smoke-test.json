@@ -1,0 +1,91 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "repo-smoke-test",
+  "plan_title": "Repository Smoke Test",
+  "description": "Read-only smoke test for manual approval flow and audit visibility.",
+  "operator": "replace-manual-approver",
+  "target": {
+    "host": "localhost",
+    "os": "Ubuntu 24.04"
+  },
+  "steps": [
+    {
+      "id": "smoke.readonly",
+      "title": "Read-only runner smoke test",
+      "goal": "验证仓库内可见的审批、执行和审计链路",
+      "reason": "在不做系统变更的前提下，确认 runner 的人工审批和审计产物可见",
+      "risk": {
+        "level": "low",
+        "summary": "仅执行只读命令和运行目录检查",
+        "approval_hint": "这是只读测试；yes 会运行 pwd、检查 RUNNER_* 环境变量并列出本次运行目录。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.pwd",
+          "name": "Show working directory",
+          "review_note": "确认 runner 当前工作目录，验证命令执行上下文符合预期。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "pwd"
+        },
+        {
+          "id": "check.plan",
+          "name": "Show plan path",
+          "review_note": "打印当前 plan 标识，确认 RUNNER_* 环境变量注入成功。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "printf '%s\n' \"$RUNNER_PLAN_ID\""
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.env",
+          "name": "Verify runner environment",
+          "review_note": "检查关键 RUNNER_* 环境变量是否存在，验证执行器已注入运行上下文。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "test -n \"$RUNNER_RUN_ID\" && test -n \"$RUNNER_RUN_DIR\" && test -n \"$RUNNER_LOGS_DIR\" && test -n \"$RUNNER_PROJECT_ROOT\" && printf 'RUNNER_RUN_ID=%s\nRUNNER_RUN_DIR=%s\nRUNNER_LOGS_DIR=%s\nRUNNER_PROJECT_ROOT=%s\n' \"$RUNNER_RUN_ID\" \"$RUNNER_RUN_DIR\" \"$RUNNER_LOGS_DIR\" \"$RUNNER_PROJECT_ROOT\""
+        },
+        {
+          "id": "cmd.audit",
+          "name": "Verify audit log exists",
+          "review_note": "确认本次运行的审计日志文件已经创建，验证日志链路可见。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "$RUNNER_LOGS_DIR/runner.jsonl"
+            ]
+          },
+          "run": "test -f \"$RUNNER_LOGS_DIR/runner.jsonl\" && ls -l \"$RUNNER_LOGS_DIR/runner.jsonl\""
+        },
+        {
+          "id": "cmd.run_dir",
+          "name": "List current run directory",
+          "review_note": "列出本次运行目录中的文件，验证运行产物已落盘。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "$RUNNER_RUN_DIR"
+            ]
+          },
+          "run": "find \"$RUNNER_RUN_DIR\" -maxdepth 2 -type f | sort"
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.stdout",
+          "name": "Show run root",
+          "review_note": "输出本次运行目录路径，便于人工定位审计产物。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "printf 'run_root=%s\n' \"$RUNNER_RUN_DIR\""
+        }
+      ],
+      "rollback": []
+    }
+  ]
+}

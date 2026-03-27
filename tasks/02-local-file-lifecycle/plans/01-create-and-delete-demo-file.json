@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "create-and-delete-demo-file",
+  "plan_title": "Create And Delete Local Demo File",
+  "description": "Local file lifecycle demo for approval, backup, and rollback flows.",
+  "operator": "replace-manual-approver",
+  "metadata": {
+    "task_id": "02-local-file-lifecycle"
+  },
+  "target": {
+    "host": "localhost",
+    "os": "Linux"
+  },
+  "steps": [
+    {
+      "id": "file.create_demo_file",
+      "title": "Create sandbox demo file",
+      "goal": "在仓库 sandbox 目录下创建一个演示文件，供后续删除和恢复验证使用",
+      "reason": "验证局部写操作会进入审批流程，并在覆盖场景下留下可追溯备份",
+      "notes": "该 step 只会触碰 sandbox/file-lifecycle/demo.txt。若文件已存在，pre 备份会记录旧状态。",
+      "backup": {
+        "rules": [
+          "write-paths"
+        ]
+      },
+      "risk": {
+        "level": "medium",
+        "summary": "在仓库 sandbox 目录内创建或覆盖单个演示文件",
+        "approval_hint": "yes 只会写入 sandbox/file-lifecycle/demo.txt。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.project_root",
+          "name": "Confirm project root exists",
+          "review_note": "确认命令会在当前项目根目录下展开相对路径。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "test -d \"$RUNNER_PROJECT_ROOT\""
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.write_demo",
+          "name": "Write sandbox demo file",
+          "review_note": "在仓库内创建一个演示文件，供下一步删除和回滚验证使用。",
+          "effects": {
+            "read_only": false,
+            "writes_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "mkdir -p \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle\" && cat <<'EOF' > \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\"\nops-gate demo file\nmanaged_by=file.create_demo_file\nEOF"
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.demo_exists",
+          "name": "Verify sandbox demo file exists",
+          "review_note": "确认演示文件已创建且内容可见。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "test -f \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\" && sed -n '1,10p' \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\""
+        }
+      ],
+      "rollback": [
+        {
+          "id": "rb.remove_created_demo",
+          "name": "Remove created demo file",
+          "review_note": "如果创建步骤需要回滚，则删除这个刚创建的演示文件。",
+          "effects": {
+            "read_only": false,
+            "writes_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "rm -f \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\""
+        }
+      ]
+    },
+    {
+      "id": "file.delete_demo_file",
+      "title": "Delete sandbox demo file",
+      "goal": "删除前一步创建的演示文件，并验证删除操作具备备份与恢复路径",
+      "reason": "验证高风险删除会自动进入更严格的审批和备份流程",
+      "notes": "rollback 会从 $RUNNER_STEP_BACKUP_DIR/file.delete_demo_file-pre-paths.tar.gz 恢复原文件。",
+      "backup": {
+        "rules": [
+          "write-paths"
+        ]
+      },
+      "risk": {
+        "level": "high",
+        "summary": "删除仓库内单个演示文件",
+        "approval_hint": "yes 只会删除 sandbox/file-lifecycle/demo.txt；rollback 将从本 step 的 pre 备份恢复。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.demo_present",
+          "name": "Require sandbox demo file exists",
+          "review_note": "确认待删除文件存在，避免把空操作误判为成功。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "test -f \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\""
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.delete_demo",
+          "name": "Delete sandbox demo file",
+          "review_note": "删除仓库 sandbox 里的单个演示文件，验证删除类操作的审批和备份行为。",
+          "effects": {
+            "read_only": false,
+            "writes_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "rm -f \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\""
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.demo_absent",
+          "name": "Verify sandbox demo file is absent",
+          "review_note": "确认删除已经生效。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "sandbox/file-lifecycle"
+            ]
+          },
+          "run": "test ! -f \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle/demo.txt\" && find \"$RUNNER_PROJECT_ROOT/sandbox/file-lifecycle\" -maxdepth 1 -type f | sort"
+        }
+      ],
+      "rollback": [
+        {
+          "id": "rb.restore_demo_from_backup",
+          "name": "Restore demo file from pre backup",
+          "review_note": "从本 step 的 pre 备份 tarball 恢复被删文件，证明高风险删除具备可回滚路径。",
+          "effects": {
+            "read_only": false,
+            "writes_paths": [
+              "sandbox/file-lifecycle/demo.txt"
+            ]
+          },
+          "run": "archive=\"$RUNNER_STEP_BACKUP_DIR/file.delete_demo_file-pre-paths.tar.gz\"; member=\"${RUNNER_PROJECT_ROOT#/}/sandbox/file-lifecycle/demo.txt\"; test -f \"$archive\" && tar -xzf \"$archive\" -C / \"$member\""
+        }
+      ]
+    }
+  ]
+}

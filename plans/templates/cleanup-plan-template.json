@@ -1,0 +1,209 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "cleanup-template-do-not-run",
+  "plan_title": "Template Cleanup Plan",
+  "description": "Template only. Replace placeholder ids, paths, commands, risks, approver, and backup scope before execution. Placeholder commands intentionally fail so the template cannot be executed unchanged.",
+  "operator": "replace-manual-approver",
+  "target": {
+    "host": "replace-target-host",
+    "os": "Linux"
+  },
+  "metadata": {
+    "task_id": "cleanup-template",
+    "template_only": true
+  },
+  "steps": [
+    {
+      "id": "cleanup.preflight",
+      "title": "Confirm cleanup scope and prerequisites",
+      "goal": "确认 cleanup 的范围、人工审批对象、备份目标和回滚条件都已经被明确",
+      "reason": "高风险 cleanup 必须建立在范围已被审阅且恢复路径已被确认的前提上",
+      "notes": "Replace every placeholder before execution. Real cleanup plans should keep review_note, effects, and backup scope accurate.",
+      "risk": {
+        "level": "medium",
+        "summary": "只读核对 cleanup 前置条件和范围定义",
+        "approval_hint": "yes 仅会核对 cleanup 范围、备份目标和执行前提；不做删除或停服务。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.root",
+          "name": "Require root for cleanup execution",
+          "review_note": "确认 cleanup 以 root 运行，避免高风险动作在权限不足时中断。",
+          "effects": {
+            "read_only": true,
+            "requires_root": true
+          },
+          "run": "test \"$(id -u)\" -eq 0 || { echo 'run cleanup plan as root' >&2; exit 1; }"
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.confirm_scope_placeholder",
+          "name": "Template placeholder for cleanup preflight",
+          "review_note": "Replace with real read-only checks that prove the exact cleanup scope, affected paths, affected services, and approved backup targets.",
+          "effects": {
+            "read_only": true,
+            "requires_root": true,
+            "reads_paths": [
+              "backups",
+              "/replace/approved-scope",
+              "/replace/verified-path"
+            ]
+          },
+          "run": "echo 'replace cleanup.preflight commands before execution' >&2; exit 1"
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.preflight_marker",
+          "name": "Emit cleanup preflight marker",
+          "review_note": "输出一个标志，便于审计确认 cleanup 前置核对已完成。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "echo cleanup-preflight-reviewed"
+        }
+      ],
+      "rollback": []
+    },
+    {
+      "id": "cleanup.execute",
+      "title": "Execute approved cleanup actions",
+      "goal": "按已审定范围执行停服务、删除目录、改配置或其他 cleanup 动作",
+      "reason": "只有先清理风险范围内的旧状态，后续步骤才能安全推进",
+      "notes": "Replace placeholder commands with the exact approved actions. Keep writes_paths complete so backup rules can cover the real blast radius.",
+      "backup": {
+        "paths": [
+          "/replace/extra-protected-path"
+        ],
+        "rules": [
+          "write-paths",
+          "etc-if-touched"
+        ]
+      },
+      "risk": {
+        "level": "high",
+        "summary": "模板占位；真实 cleanup step 通常会停服务、删目录、改配置或改网络",
+        "approval_hint": "yes 仅在明确知道本 step 会改什么、备份覆盖了什么、失败后如何回滚时才允许。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.scope_file_placeholder",
+          "name": "Template placeholder for approved cleanup scope",
+          "review_note": "Replace with checks that prove the exact cleanup scope and expected blast radius were reviewed before execution.",
+          "effects": {
+            "read_only": true,
+            "requires_root": true,
+            "reads_paths": [
+              "/replace/approved-scope"
+            ]
+          },
+          "run": "echo 'replace cleanup.execute pre-checks before execution' >&2; exit 1"
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.replace_with_real_cleanup",
+          "name": "Template placeholder for destructive cleanup action",
+          "review_note": "Replace with the approved cleanup command and declare exact writes_paths, network_targets, and service_actions.",
+          "effects": {
+            "read_only": false,
+            "requires_root": true,
+            "reads_paths": [
+              "/replace/input-path"
+            ],
+            "writes_paths": [
+              "/replace/output-or-deleted-path"
+            ],
+            "service_actions": [
+              "replace stop/disable/remove action"
+            ]
+          },
+          "run": "echo 'replace cleanup.execute commands before execution' >&2; exit 1"
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.cleanup_effect_placeholder",
+          "name": "Template placeholder for cleanup result checks",
+          "review_note": "Replace with checks that prove the approved cleanup actually took effect.",
+          "effects": {
+            "read_only": true,
+            "requires_root": true,
+            "reads_paths": [
+              "/replace/verified-path"
+            ]
+          },
+          "run": "echo 'replace cleanup.execute post-checks before execution' >&2; exit 1"
+        }
+      ],
+      "rollback": [
+        {
+          "id": "rb.replace_with_real_rollback",
+          "name": "Template placeholder for rollback action",
+          "review_note": "Replace with the real rollback action for this cleanup step. If no credible rollback exists, document that explicitly after review.",
+          "effects": {
+            "read_only": false,
+            "requires_root": true,
+            "writes_paths": [
+              "/replace/rollback-target"
+            ],
+            "service_actions": [
+              "replace rollback restore/restart action"
+            ]
+          },
+          "run": "echo 'replace cleanup.execute rollback before execution' >&2; exit 1"
+        }
+      ]
+    },
+    {
+      "id": "cleanup.verify",
+      "title": "Verify post-cleanup host state",
+      "goal": "确认 cleanup 后的主机状态符合预期，且可以安全进入下一阶段",
+      "reason": "cleanup 完成不代表环境已干净，仍需通过只读验证确认结果",
+      "risk": {
+        "level": "medium",
+        "summary": "只读验证 cleanup 结果和剩余风险",
+        "approval_hint": "yes 仅会做 cleanup 结果验证，不会再改动宿主机。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.verify_tools_placeholder",
+          "name": "Template placeholder for verification tools",
+          "review_note": "Replace with the real tools needed to verify the cleanup result.",
+          "effects": {
+            "read_only": true
+          },
+          "run": "echo 'replace cleanup.verify pre-checks before execution' >&2; exit 1"
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.verify_cleanup_placeholder",
+          "name": "Template placeholder for verification command",
+          "review_note": "Replace with real read-only checks that confirm removed services stay inactive, deleted paths stay absent, and unexpected side effects did not appear.",
+          "effects": {
+            "read_only": true,
+            "requires_root": true,
+            "reads_paths": [
+              "/replace/verify-path"
+            ]
+          },
+          "run": "echo 'replace cleanup.verify commands before execution' >&2; exit 1"
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.verify_marker",
+          "name": "Emit cleanup verification marker",
+          "review_note": "输出一个标志，便于审计确认 cleanup 验证步骤已完成。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "echo cleanup-verification-reviewed"
+        }
+      ],
+      "rollback": []
+    }
+  ]
+}

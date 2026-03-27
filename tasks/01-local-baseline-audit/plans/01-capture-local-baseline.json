@@ -1,0 +1,94 @@
+{
+  "schema_version": "1.0.0",
+  "plan_id": "capture-local-baseline",
+  "plan_title": "Capture Local Environment Baseline",
+  "description": "Read-only local baseline task for ops-gate smoke testing.",
+  "operator": "replace-manual-approver",
+  "metadata": {
+    "task_id": "01-local-baseline-audit"
+  },
+  "target": {
+    "host": "localhost",
+    "os": "Linux"
+  },
+  "steps": [
+    {
+      "id": "audit.local_baseline",
+      "title": "Collect local baseline facts",
+      "goal": "采集本机最小基线信息，证明只读诊断流程可被清晰审批和留痕",
+      "reason": "把最常见的基线采集场景保留为本地 demo，便于后续回归和演示",
+      "risk": {
+        "level": "low",
+        "summary": "只读收集主机基线信息和项目内运行目录信息",
+        "approval_hint": "yes 只会读取系统信息、打印项目内路径并列出当前 run 目录。"
+      },
+      "pre_checks": [
+        {
+          "id": "check.tools",
+          "name": "Confirm baseline tools exist",
+          "review_note": "确认本次基线采集只依赖最基础的只读命令。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "command -v uname >/dev/null 2>&1 && command -v df >/dev/null 2>&1 && command -v sed >/dev/null 2>&1"
+        }
+      ],
+      "commands": [
+        {
+          "id": "cmd.os_release",
+          "name": "Show operating system release",
+          "review_note": "读取 /etc/os-release，确认当前主机发行版信息。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "/etc/os-release"
+            ]
+          },
+          "run": "test -f /etc/os-release && sed -n '1,12p' /etc/os-release"
+        },
+        {
+          "id": "cmd.kernel",
+          "name": "Show kernel and architecture",
+          "review_note": "读取当前内核和架构信息，便于后续判断环境差异。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "uname -a"
+        },
+        {
+          "id": "cmd.workspace_paths",
+          "name": "Show localized workspace paths",
+          "review_note": "输出项目根目录、run 根目录、backup 根目录和审批状态文件默认位置，验证仓库已本地化。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "printf 'project=%s\\nruns=%s\\nbackups=%s\\nstate=%s\\n' \"$RUNNER_PROJECT_ROOT\" \"$RUNNER_BASE_RUN_ROOT\" \"$RUNNER_BACKUP_ROOT\" \"$RUNNER_PROJECT_ROOT/state/approval_mode.json\""
+        },
+        {
+          "id": "cmd.disk",
+          "name": "Show available workspace disk",
+          "review_note": "读取项目所在文件系统的磁盘使用率，确认 run 和 backup 有足够空间。",
+          "effects": {
+            "read_only": true
+          },
+          "run": "df -h \"$RUNNER_PROJECT_ROOT\""
+        }
+      ],
+      "post_checks": [
+        {
+          "id": "check.run_dir",
+          "name": "List current run directory",
+          "review_note": "列出本次 run 目录中的文件，便于人工定位证据文件。",
+          "effects": {
+            "read_only": true,
+            "reads_paths": [
+              "runs"
+            ]
+          },
+          "run": "find \"$RUNNER_RUN_DIR\" -maxdepth 2 -type f | sort"
+        }
+      ],
+      "rollback": []
+    }
+  ]
+}

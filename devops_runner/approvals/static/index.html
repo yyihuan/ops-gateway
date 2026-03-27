@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Runner Approval</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <h1>Runner Approval</h1>
+  <p class="hint">This page refreshes automatically every second. Approvals here are treated as direct human decisions.</p>
+  <div class="meta">
+    <div><strong>Task</strong><br><span id="task-id">loading...</span></div>
+    <div><strong>Run ID</strong><br><span id="run-id">loading...</span></div>
+    <div><strong>Plan</strong><br><span id="plan-title">loading...</span></div>
+    <div><strong>Current Step</strong><br><span id="current-step">-</span></div>
+    <div><strong>Current Phase / Command</strong><br><span id="current-phase">-</span></div>
+    <div><strong>Final Status</strong><br><span id="final-status">running</span></div>
+    <div><strong>Run Mode</strong><br><span id="run-approval-mode">manual</span></div>
+    <div><strong>Global Default</strong><br><span id="global-default-mode">manual</span></div>
+    <div><strong>Approval Threshold</strong><br><span id="approval-threshold">low</span></div>
+    <div><strong>Last Event</strong><br><span id="last-event">-</span></div>
+  </div>
+  <div class="grid">
+    <div class="card">
+      <h2>Pending Approval</h2>
+      <div id="prompt-kind" class="hint">waiting for state...</div>
+      <div id="prompt-error" class="error"></div>
+      <pre id="prompt-summary">loading...</pre>
+      <div id="edit-wrapper" style="display:none;">
+        <p class="hint">Edit JSON below and submit with the edit button.</p>
+        <textarea id="edit-json"></textarea>
+      </div>
+      <div class="actions" id="actions" style="display:none;">
+        <button class="primary" onclick="submitDecision('yes')">Yes</button>
+        <button class="secondary" onclick="submitDecision('no')">No</button>
+        <button class="tertiary" id="edit-button" onclick="submitDecision('edit')">Submit Edit</button>
+      </div>
+      <h2>Approval Mode Control</h2>
+      <p class="hint" id="run-mode-summary">manual: every step approval requires a human click</p>
+      <div class="actions">
+        <button class="tertiary" onclick="submitModeAction('enable_auto_low_risk_run')">Auto Low Risk For This Run</button>
+        <button class="secondary" onclick="submitModeAction('disable_auto_run')">Manual For This Run</button>
+      </div>
+      <p class="hint" id="global-mode-summary">global default manual: new runs require manual step approval</p>
+      <div class="actions">
+        <button class="tertiary" onclick="submitModeAction('set_global_auto_low_risk')">Set Global Auto Low Risk</button>
+        <button class="secondary" onclick="submitModeAction('set_global_manual')">Set Global Manual</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Recent Events</h2>
+      <pre id="events">loading...</pre>
+      <h2>Plan Summary</h2>
+      <pre id="plan-summary">loading...</pre>
+    </div>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

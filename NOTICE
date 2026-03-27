@@ -1,0 +1,15 @@
+Ops Gate
+Copyright (c) 2026 Yuan Yihuan
+
+Source repository identity:
+- Project name: Ops Gate
+- Canonical source: https://github.com/yyihuan/ops-gateway
+
+License summary:
+- Source code in this repository is licensed under AGPL-3.0-or-later unless a file states otherwise.
+- Skill instructions, documentation, and Markdown rule files are licensed under CC BY-SA 4.0 unless a file states otherwise.
+
+Attribution and downstream notice:
+- Modified and redistributed versions must preserve attribution to this project.
+- Downstream redistributions should retain this NOTICE file or an equivalent attribution record.
+- Where practical, modified versions should state that they are derived from Ops Gate and identify the upstream source repository.

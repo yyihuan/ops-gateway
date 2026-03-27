@@ -1,0 +1,20 @@
+body { font-family: sans-serif; margin: 24px; background: #f5f7fb; color: #1f2937; }
+.grid { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 16px; }
+.card { background: white; border-radius: 12px; padding: 16px; box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08); }
+h1, h2 { margin-top: 0; }
+pre { white-space: pre-wrap; word-break: break-word; background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 10px; overflow: auto; max-height: 480px; }
+.meta { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 16px; margin-bottom: 12px; }
+.meta div { background: #eef2ff; padding: 10px 12px; border-radius: 10px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+button { border: 0; border-radius: 10px; padding: 10px 14px; cursor: pointer; font-weight: 600; }
+button.primary { background: #166534; color: white; }
+button.secondary { background: #9f1239; color: white; }
+button.tertiary { background: #1d4ed8; color: white; }
+textarea { width: 100%; min-height: 220px; border-radius: 10px; border: 1px solid #cbd5e1; padding: 10px; font-family: monospace; }
+.hint { color: #475569; font-size: 14px; }
+.error { color: #b91c1c; font-weight: 700; }
+.status-ok { color: #166534; font-weight: 700; }
+.status-bad { color: #b91c1c; font-weight: 700; }
+.mode-manual { color: #9f1239; font-weight: 700; }
+.mode-auto { color: #166534; font-weight: 700; }
+@media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
